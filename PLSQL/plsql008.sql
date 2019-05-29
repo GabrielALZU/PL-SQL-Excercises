@@ -1,0 +1,17 @@
+/* PROGRAMA QUE DETERMINA EL MAYOR DE DOS NÚMEROS O SI SON IGUALES V.2*/
+SET SERVEROUTPUT ON;
+DECLARE
+A NUMBER;
+B NUMBER;
+BEGIN
+A:=&A;
+B:=&B;
+IF A>B THEN
+	dbms_output.put_line(A||' ES MAYOR QUE '||B);
+ELSIF B>A THEN
+ 	dbms_output.put_line(B||' ES MAYOR QUE '||A);
+ELSE
+	dbms_output.put_line(A||' ES IGUAL QUE '||B);
+END IF;
+END;
+/

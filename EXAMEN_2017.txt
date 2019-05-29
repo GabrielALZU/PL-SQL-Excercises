@@ -1,0 +1,88 @@
+=====NOTA: SQL->ORACLE; mysql-->SQL; 
+/*1.-Queremos crear una tabla a partir de la de productos, esta tabla que tendrá la misma estructura que la de productos se llamará productos_mas_vendidos, y debe contener los 50 productos que más se han vendido a lo largo de la vida de la empresa. (1 punto)*/
+
+mysql>CREATE TABLE productos_mas_vendidos as  SELECT * FROM PRODUCTOS WHERE codigoproducto IN (SELECT CodigoProducto from (SELECT codigoproducto, sum(Cantidad) FROM detallepedidos ORDER BY sum(Cantidad) desc limit 50 as tabla));
+
+SQL> SELECT CodigoPorudcto from (SELECT CodigoProducto from (SELECT codigoproducto, sum(Cantidad) FROM detallepedidos ORDER BY sum(Cantidad) desc) where ROWNUM<=50);
+
+/*2.-Añade a dicha tabla el siguiente registro:(MIRAR EXAMEN EN MOODLE)*/
+
+mysql/SQL>INSERT INTO Productos_mas_vendidos (CODIGOPRODUCTO,NOMBRE,GAMA,DIMENSIONES,PROVEEDOR,DESCRIPCION,CANTIDADENSTOCK,PRECIOVENTA,PRECIOPROVEEDOR) VALUES ('OR-99','Gardenia Jasminoides','NULL','Viveros El Oasis','La Gardenia se trata de un arbusto de hoja perenne originaria de China','25','15','10');
+
+/*3.-Borra de la tabla de productos_mas_vendidos aquellos que no se haya vendido ninguna unidad en el año 2009. (1 punto). */
+
+SQL> DELETE FROM Productos_mas_vendidos where CodigoPedido NOT IN (select distinct CodigoProducto from Pedidos natural join DetallePedidos natural join Productos where FechaPedidos like '2009');
+
+/*4.-Crea una función que calcule precio final, que se pasará como argumento una cantidad, un porcentaje a aplicar, el el resultado final será la suma de la cantidad más el porcentaje aplicado más un 10% sobre la cantidad anterior por los gastos de manipulación del producto. Es decir si aplico precioFinal(100,5), el resultado sería el siguiente. 105 + 10,5 =115,5 €.  */
+
+SET SERVEROUTPUT ON;
+CREATE OR REPLACE FUNCTION PRECIO_FINAL(CANTIDAD1 IN NUMBER, PORCENTAJE IN NUMBER) RETURN NUMBER IS
+PRECIOFINAL:=0;
+PORCENTAJE:=0;
+BEGIN
+WHILE CANTIDAD > 0 LOOP
+	CANTIDAD2:=CANTIDAD*0.1
+	PRECIOFINAL:=(CANTIDAD + CANTIDAD2)*1.1
+END LOOP;
+	RETURN PRECIOFINAL;
+END;
+/
+/*NUEVO APARTADO MIRAR ENUNCIADO EXAMEN*/
+CREATE OR REPLACE PROCEDURE estableceprecio(CODIGO IN Productos_mas_vendidos.CODIGOPRODUCTO%TYPE) AS
+PRECIOPRO Productos_mas_vendidos.PRECIOPROVEEDOR%TYPE;
+BEGIN
+SELECT PrecioProveedor INTO PRECIOPRO FROM Productos_mas_vendidos WHERE CODIGOPRODUCTO=CODIGO;
+UPDATE Productos_mas_vendidos ON SET PrecioVenta= PRECIO_FINAL(PRECIOPRO, 30) WHERE CODIGOPRODUCTO=CODIGO;		//ESTOY LLAMANDO A LA FUNCION PRECIOFINAL
+EXCEPTION
+WHEN NO_DATA_FOUND THEN
+	DBMS_OUTPUT.PUT_LINE(`CODIGO NO EXISTE');
+WHEN OTHERS THEN
+	DBMS_OUTPUT.PUT_LINE('ERROR DESCONOCIDO');
+END;
+/
+
+/*NUEVO APARTADO NO DE EXAMEN!!!!!!CAMBIAR EL PRECIO DE TODOS LOS PRODUCTOS SEGUN EL PORCENTAJE QUE QUERAMOS*/
+.
+.
+.
+
+/*5.-Crea  un  procedimiento  llamado  comisión  en  el  que  le  pasemos  como parámetro el código del empleado, y un porcentaje y muestre por pantalla, el total facturado por ese empleado a cada cliente, el total facturado a todos los clientes, y cuanto le correspondería de comisión, multiplicamos el porcentaje introducido por el total.  (2,5 puntos)*/
+
+SET SERVER OUTPUT ON;
+CREATE OR REPLACE PROCEDURE COMISION ( COD IN Empleados.CodigoEmpleado%TYPE, COMISION NUMBER) AS
+REG_EMP EMPLEADOS%ROWTYPE;
+TOTAL_FACTURADO NUMBER:=0;
+TOTAL_COMISION NUMBER:=0;
+CURSOR cur_cliente IS SELECT NOMBRECLIENTE,SUM(CANTIDAD*PRECIOUNIDAD) AS 
+TOTALCLIENTE FROM CLIENTES NATURAL JOIN PEDIDOS NATURAL JOIN DETALLEPEDIDOS WHERE CODIGOEMPLEADOREPVENTAS=COD GROUP BY NOMBRECLIENTE;
+BEGIN
+SELECT * INTO REG_EMP FROM EMPLEADOS WHERE CODIGOEMPLEADO=COD;
+DBMS_OUTPUT.PUT_LINE('CODIGO EMPLEADO: '||REG_EMP.CODIGO);
+DBMS_OUTPUT.PUT_LINE('NOMBRE EMPLEADO: '||REG_EMP.NOMBRE);
+DBMS_OUTPUT.PUT_LINE('PRIMER APELLIDO: '||REG_EMP.APELLIDO1);
+DBMS_OUTPUT.PUT_LINE('SEGUNDO APELLIDO: '||REG_EMP.APELLIDO2);
+FOR Reg_Cliente IN cur_cliente LOOP
+		DBMS_OUTPUT.PUT_LINE('CLIENTE:'||REG_CLI.NOMBRECLIENTE||'TOTAL: '||REG_CLI.TOTALCLIENTE);
+TOTAL_FACTURADO:=TOTAL_FACTURADO+REG_CLI.TOTALCLIENTE;
+END LOOP;
+TOTAL_COMISION:=TOTAL_FACTURADO*POR/100
+DBMS_OUTPUT.OUT_LINE('TOTALFACTURADO TOTAL COMISION.....)	
+EXCEPTION
+	WHEN NO_DATA_FOUND THEN
+		DBMSOUTPUT...(NO EMPLEADO);
+	WHEN OTHERS THEN 
+		DBMS(ERRORDESCONOCIDO);
+END:
+/
+
+/*6.-*/
+CREATE OR REPLACE TRIGGER ACTUALIZA_PRECIO_VENTA UPDATE OF 
+PRECIPROVEEDOR ON PRODUCTOS
+DFOR EACH ROW
+BEGIN
+UPDATE PRODUCTOS_MAS_VENDIDOS SET :OLD.PRECIOVENTA=PRECIOFINAL(:NEW.PRECIOPROVEEDOR,30) WHERRE CODIGOPRODUCTO=:NEW.CODIGOPRODUCTO;
+END;
+/
+
+
+

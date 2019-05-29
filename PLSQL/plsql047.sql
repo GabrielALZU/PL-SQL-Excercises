@@ -1,0 +1,13 @@
+CREATE OR REPLACE PROCEDURE LISTAR_EMPLEADOS(CO IN EMPLEADOS.CODIGOOFICINA%TYPE)AS
+CURSOR cursor_Empleados IS SELECT NOMBRE,APELLIDO1,APELLIDO2,CIUDAD FROM EMPLEADOS NATURAL JOIN OFICINAS WHERE CODIGOOFICINA=CO;
+regEmpleado cursor_Empleados%ROWTYPE;
+BEGIN
+OPEN cursor_Empleados;
+FETCH cursor_Empleados INTO regEmpleado;
+WHILE cursor_Empleados%FOUND LOOP
+	DBMS_OUTPUT.PUT_LINE(regEmpleado.NOMBRE||' '||regEmpleado.Apellido1||' '||regEmpleado.APELLIDO2||' '||regEmpleado.CIUDAD);
+FETCH cursor_Empleados INTO regEmpleado;
+END LOOP;
+CLOSE cursor_Empleados;
+END;
+/

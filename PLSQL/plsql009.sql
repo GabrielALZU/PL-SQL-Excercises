@@ -1,0 +1,15 @@
+/* PROGRAMA QUE EN ORDEN CRECIENTE DOS NÚMEROS LEÍDOS POR TECLADO */
+SET SERVEROUTPUT ON;
+DECLARE
+A NUMBER;
+B NUMBER;
+BEGIN
+A:=&A;
+B:=&B;
+IF A<B THEN
+	dbms_output.put_line(A||', '||B);
+ELSE
+	dbms_output.put_line(B||', '||A);
+END IF;
+END;
+/

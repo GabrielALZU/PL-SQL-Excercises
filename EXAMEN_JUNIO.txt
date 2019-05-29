@@ -1,0 +1,89 @@
+/*1.- Crea una tabla llamada productoStockBajo que tenga todos los productos que tengan menos de 10 unidades en el campo CantidadEnStock. (0.75 puntos*/
+
+CREATE TABLE ProductosENSTOCK AS SELECT * FROM PRODUCTOS WHERE CANTIDADENSTOCK<10;
+
+/*2.-Modifica el PrecioVenta de los productos de la tabla productoStockBajo de manera que sea igual a subir el 40% el PrecioProveedor. (0,75 puntos)*/
+
+UPDATE PRODUCTOSSTOCKBAJO SET PRECIOVENTA=PRECIOPROVEEDOR*1,4;
+
+/*3.- Borra los productos de la tabla produtctoSockBajo cuyo PrecioVenta sea mayor de 100 €. (0,75 puntos*/
+
+DELETE FROM PRODUCTOSSTOCKBAJO WHERE PRECIOVENTA>100;
+
+/*4.-Crea una función llamada CalculaDeuda de manera que pasemos como parámetro el codigocliente y nos devuelva la diferencia entre lo que ha facturado ese cliente y lo que ha pagado. (1,75 puntos) */
+
+CREATE OR REPLACE FUNCTION CALCULA_DEUDA(COD IN CLIENTES.CODIGOCLIENTES%TYPE) RETURN NUMBER AS
+TOTAL_PAGADO NUMBER:=0;
+TOTAL_FACTURADO NUMBER:=0;
+DEUDA NUMBER:=0;
+BEGIN
+SELECT SUM(CANTIDAD) INTO TOTAL_PAGADO FROM PAGOS WHERE CODIGOCLIENTE=COD;
+SELECT SUM(CANTIDAD*PRECIOUNIDAD) INTO TOTAL_FACTURADO FROM PEDIDOS NATURAL JOIN DETALLEPEDIDOS WHERE CODIGOCLIENTE=COD;	
+
+//NO HACE FALTA UN GROUP BY YA QUE SOLO ESTAMOS COGIENDO LOS DATOS DE UN CLIENTE!!! AL MISMO TIEMPO
+ DEUDA:=TOTAL_PAGADO-TOTAL_FACTURADO;
+RETURN DEUDA;
+END;
+/ 
+
+/*5.-Crea el procedimiento SaldarDeudaCliente que pasemos como parámetro el codigocliente y usando la función anterior compruebe si existe deuda, y si existe que realice un pago insertando el correspondiente registro en la tabla pagos. (2punto)*/
+
+CREATE OR REPLACE PROCEDURE SALDARDEUDACLIENTE(COD IN PAGOS.CODIGOCLIENTE%TYPE) AS 
+DEUDA NUMBER:=0;
+BEGIN
+DEUDA:=CALCULA_DEUDA(COD);
+IF DEUDA(COD)<0 THEN
+	DEUDA:=-DEUDA //ESTOY CON MENOR DE CERO!!!
+	INSERT INTO PAGOS() VALUES (COD,'CONTADO',COD||CURRENT_DATE,CURRENT_DATE,DEUDA);
+	DBMS_OUTPUT.PUT_LINE('SE REALIZA UN PAGO DE: '||DEUDA);
+ELSE
+	DBMS('NO HAY DEUDA');
+END IF
+EXCEPTION
+WHEN OTHERS THEN 
+	DBMS(ÉRROR INESPERADO CERRANDO LA CONSULTA..')
+END;
+/
+
+/*6.- Diseña  un  disparador  que  cuando  se  inserte  una  línea  de  pedido,  se reste la cantidad del stock del producto, y cuando se elimine la línea de pedido  se  sume  la  cantidad  en  el  stock.  (puedes  hacerlo  con  dos disparadores) (2 puntos). */
+
+CREATE OR REPLACE TRIGGER ACTUALIZA STOCK AFTER INSERT OR DELETE ON DETALLEPEDIDOS FOR EACH ROW 
+BEGIN
+IF INSERTING THEN
+UPDATE PRODUCTOS SET CANTIDADENSTOCK=CANTIDADENSTOCK-:NEW.CANTIDAD WHERE CODIGOPRODUCTO=:NEW.CODIGOPRODUCTO;
+ELSIF DELETING THEN
+UPDATE PRODUCTOS SET CANTIDADENSTOCK=CANTIDADENSTOCK+:OLD.CANTIDAD WHERE CODIGOPRODUCTO=:OLD.CODIGPRODUCTO;
+END IF;
+END;
+/
+
+/*7.-Diseña  un  procedimiento  llamado  VerGama  que  pasemos  como parámetro una gama y nos muestre un listado de los productos de esa gama en la que aparezca el nombre, el precioventa, precioproveedor y la cantidadenstock de cada producto de la gama. Al final deberá indicar el total de unidades disponibles de dicha gama. (2 puntos). */
+
+CREATE OR REPLACE PROCEDURE VER_GAMA(G IN PRODUCTOS.GAMA%TYPE) AS
+CURSOR C_GAMA IS SELECT NOMBRE, PRECIOPROVEEDOR, PRECIOVENTA, CANTIDADENSTOCK FROM PRODUCTOS WHERE GAMA=G;
+BEGIN
+FOR R_PRO IN C_GAMA LOOP
+	DBMS_OUTPUT.PUT_LINE(R_PRO.NOMBRE||' '||R_PRO.PRECIOPROVEEDOR||' '||R_PRO.PRECIOVENTA' '||R_PRO.CANTIDADENSTOCK)
+END LOOP;
+SELECT SUM(CANTIDADENSTOCK) INTO TOTAL_UNIDADES FROM PRODUCTOS WHERE GAMA=G;
+DBMS_OUTPUT.PUT_LINE('TOTAL UNIDADES EN STOCK DE LA GAMA: '||TOTAL_UNIDADES);
+END;
+/
+
+**************************************/*7.-EJERCICIO CON WHILE*/*******************************************************************
+
+CREATE OR REPLACE PROCEDURE VER_GAMA(G IN PRODUCTOS.GAMA%TYPE) AS
+CURSOR C_GAMA IS SELECT NOMBRE, PRECIOPROVEEDOR, PRECIOVENTA, CANTIDADENSTOCK FROM PRODUCTOS WHERE GAMA=G;
+R_PRO C_GAMA%ROWTYPE
+BEGIN
+OPEN C_GAMA
+FETCH C_GAMA INTO R_PRO
+WHILE C_GAMA %FOUND LOOP
+	DBMS()
+FETCH C_GAMA INTO R_PRO
+END LOOP;
+CLOSE C_GAMA
+SELECT SUM(CANTIDADENSTOCK) INTO TOTAL_UNIDADES FROM PRODUCTOS WHERE GAMA=G;
+DBMS_OUTPUT.PUT_LINE('TOTAL UNIDADES EN STOCK DE LA GAMA: '||TOTAL_UNIDADES);
+END;
+/
